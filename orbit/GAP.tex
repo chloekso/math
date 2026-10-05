@@ -1,0 +1,230 @@
+% The following code checks for the maximum Fitting length of 2-nilpotent subgroups of $GL(4,3)$. It was used for Lemma 3.1 and Theorem 3.2.
+
+G := GL(4,3);
+subs := List(ConjugacyClassesSubgroups(G), Representative);
+twoNilpotentSubs := Filtered(subs, H -> IsPNilpotent(H, 2));
+maxFL := Maximum(List(twoNilpotentSubs, FittingLength));
+Print(maxFL);
+
+
+% The following code checks for the Fitting length of 2-nilpotent exceptional cases of $(n,q) = (4,7)$ in \cite{Foulser}. It was used for Theorem 3.2.
+
+LoadPackage("primgrp");
+
+deg := 7^4;
+ord := 7^4 * 2^7 * 3 * 5;
+
+cands := AllPrimitiveGroups(
+    NrMovedPoints, deg,
+    Size, ord,
+    IsSolvableGroup, true
+);
+
+good := Filtered(cands, function(G)
+    local lens;
+    lens := List(Orbits(Stabilizer(G, 1), [1..deg]), Length);
+    Sort(lens);
+    return lens = [1, 480, 1920];
+end);
+
+for G in good do
+    G0 := Stabilizer(G, 1);
+
+    Print(
+        "Size(G0) = ", Size(G0),
+        ", 2-nilpotent = ", IsPNilpotent(G0, 2),
+        ", Fitting length = ", FittingLength(G0),
+        "\n"
+    );
+od;
+
+
+% The following code checks for the Fitting length of 3-nilpotent exceptional cases of $(n,q) = (4,7)$ in \cite{Foulser}. It was used for Theorem 4.2.
+
+LoadPackage("primgrp");
+
+deg := 7^4;
+ord := 7^4 * 2^7 * 3 * 5;
+
+cands := AllPrimitiveGroups(
+    NrMovedPoints, deg,
+    Size, ord,
+    IsSolvableGroup, true
+);
+
+Print("Number of candidates: ", Length(cands), "\n");
+
+good := Filtered(cands, function(G)
+    local lens;
+    lens := List(Orbits(Stabilizer(G, 1), [1..deg]), Length);
+    Sort(lens);
+    return lens = [1, 480, 1920];
+end);
+
+Print("Number with subdegrees 1,480,1920: ", Length(good), "\n");
+
+for G in good do
+    G0 := Stabilizer(G, 1);
+
+    Print(
+        "Size(G0) = ", Size(G0),
+        ", 3-nilpotent = ", IsPNilpotent(G0, 3),
+        ", Fitting length = ", FittingLength(G0),
+        "\n"
+    );
+od;
+
+% The following code was used for Theorem 3.4 and Theorem 4.4 to generate the tables.
+
+OnWordByPositions := function(w, g)
+    local u, i;
+    u := [];
+
+    for i in [1..Length(w)] do
+        u[i^g] := w[i];
+    od;
+
+    return u;
+end;
+
+BaseWordOfType := function(pi)
+    local w, color, k, i;
+
+    w := [];
+    color := 1;
+
+    for k in pi do
+        for i in [1..k] do
+            Add(w, color);
+        od;
+        color := color + 1;
+    od;
+
+    return w;
+end;
+
+Fpi := function(pi)
+    local vals, v, prod;
+
+    vals := Set(pi);
+    prod := 1;
+
+    for v in vals do
+        prod := prod * Factorial(Length(Filtered(pi, x -> x = v)));
+    od;
+
+    return prod;
+end;
+
+PiString := function(pi)
+    local str, i;
+
+    str := "$(";
+
+    for i in [1..Length(pi)] do
+        str := Concatenation(str, String(pi[i]));
+
+        if i < Length(pi) then
+            str := Concatenation(str, ",");
+        fi;
+    od;
+
+    str := Concatenation(str, ")$");
+
+    return str;
+end;
+
+Ntriv := function(G, pi)
+    local base, words, seen, count, w, orb;
+
+    base := BaseWordOfType(pi);
+    words := Set(PermutationsList(base));
+
+    seen := [];
+    count := 0;
+
+    for w in words do
+        if not w in seen then
+            orb := Set(List(Elements(G), g -> OnWordByPositions(w, g)));
+
+            if Size(Stabilizer(G, w, OnWordByPositions)) = 1 then
+                count := count + 1;
+            fi;
+
+            seen := Union(seen, orb);
+        fi;
+    od;
+
+    return count;
+end;
+
+PrintNtrivLatexRows := function(G, m)
+    local parts, pi, n;
+
+    parts := List(Partitions(m), p -> Reversed(p));
+
+    for pi in parts do
+        n := Ntriv(G, pi);
+
+        if n <> 0 then
+            Print(Length(pi), " & ",
+                  PiString(pi), " & ",
+                  n, " & ",
+                  Fpi(pi), " \\\\\n");
+        fi;
+    od;
+end;
+
+S3 := SymmetricGroup(3);
+PrintNtrivLatexRows(S3, 3);
+
+F10 := Group(
+    (1,2,3,4,5),
+    (2,5)(3,4)
+);
+PrintNtrivLatexRows(F10, 5);
+
+F20 := Group(
+    (1,2,3,4,5),
+    (2,3,5,4)
+);
+PrintNtrivLatexRows(F20, 5);
+
+F42 := Group(
+    (1,2,3,4,5,6,7),
+    (2,4,3,7,5,6)
+);
+PrintNtrivLatexRows(F42, 7);
+
+t1 := (1,2,3)(4,5,6)(7,8,9);
+t2 := (1,4,7)(2,5,8)(3,6,9);
+rD8 := (2,4,3,7)(5,6,9,8);
+sD8 := (4,7)(5,8)(6,9);
+C3xC3_D8 := Group(
+    t1, t2,
+    rD8, sD8
+);
+PrintNtrivLatexRows(C3xC3_D8, 9);
+
+t1 := (1,2,3)(4,5,6)(7,8,9);
+t2 := (1,4,7)(2,5,8)(3,6,9);
+aSD := (2,4,5,8,3,7,9,6);
+bSD := (2,5)(3,9)(4,7);
+C3xC3_SD16 := Group(
+    t1, t2,
+    aSD, bSD
+);
+PrintNtrivLatexRows(C3xC3_SD16, 9);
+
+A4 := AlternatingGroup(4);
+PrintNtrivLatexRows(A4, 4);
+
+trans8 := (1,2)(3,5)(4,8)(6,7);
+mult8  := (2,3,4,5,6,7,8);
+frob8  := (3,4,6)(5,8,7);
+AGamma23 := Group(
+    trans8,
+    mult8,
+    frob8
+);
+PrintNtrivLatexRows(AGamma23, 8);
